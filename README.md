@@ -1,2 +1,2 @@
 # brickred-moment
-experimental 3d render library
+experimental 3d game engine
