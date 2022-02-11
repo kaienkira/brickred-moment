@@ -1,7 +1,7 @@
 #include <brickred/moment/display/display_service.h>
 
 #if defined(BRICKRED_MOMENT_BUILD_PLATFORM_LINUX)
-#include "display_service_linux.cc"
+#include "display_service_x11.cc"
 #endif
 
 namespace brickred::moment::display {
