@@ -2,6 +2,7 @@
 #define BRICKRED_MOMENT_ENGINE_ENGINE_H
 
 #include <memory>
+
 #include <brickred/moment/base/class_util.h>
 
 namespace brickred::moment::engine {

@@ -2,6 +2,7 @@
 #define BRICKRED_MOMENT_DISPLAY_DISPLAY_DRIVER_X11_H
 
 #include <memory>
+
 #include <brickred/moment/base/class_util.h>
 
 namespace brickred::moment::display {
