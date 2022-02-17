@@ -12,6 +12,9 @@ public:
     DisplayDriverX11();
     ~DisplayDriverX11();
 
+    bool init();
+    void finalize();
+
 private:
     BRICKRED_MOMENT_NONCOPYABLE(DisplayDriverX11)
 
