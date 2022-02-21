@@ -43,6 +43,11 @@ void InternalLogger::log(int level, const char *format, ...)
     if (nullptr == log_func_) {
         return;
     }
+
+    va_list args;
+    va_start(args, format);
+    log_func_(level, format, args);
+    va_end(args);
 }
 
 } // namespace brickred::moment::base

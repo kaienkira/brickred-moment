@@ -3,6 +3,7 @@
 #include <X11/Xlib.h>
 
 #include <brickred/moment/base/dynamic_load_library.h>
+#include <brickred/moment/base/internal_logger.h>
 
 namespace brickred::moment::display {
 
@@ -31,11 +32,22 @@ DisplayDriverX11::Impl::Impl() :
 
 DisplayDriverX11::Impl::~Impl()
 {
+    finalize();
 }
 
 bool DisplayDriverX11::Impl::init()
 {
     if (x_lib_dll_.load("libX11.so.6") == false) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "failed to load libX11.so.6");
+        return false;
+    }
+
+    fn_x_open_display_ =
+        (FN_XOpenDisplay)x_lib_dll_.findSymbol("XOpenDisplay");
+    if (nullptr == fn_x_open_display_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "failed to find symbol XOpenDisplay in X lib");
         return false;
     }
 
@@ -44,6 +56,9 @@ bool DisplayDriverX11::Impl::init()
 
 void DisplayDriverX11::Impl::finalize()
 {
+    fn_x_open_display_ = nullptr;
+
+    x_lib_dll_.unload();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
