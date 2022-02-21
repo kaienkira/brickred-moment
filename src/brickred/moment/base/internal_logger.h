@@ -27,13 +27,21 @@ public:
     void log(int level, const char *format, ...);
 
 private:
-    BRICKRED_PRECREATED_SINGLETON(InternalLogger)
+    BRICKRED_MOMENT_PRECREATED_SINGLETON(InternalLogger)
 
     LogFunc log_func_;
 };
 
-#define BRICKRED_MOMENT_LOG_DEBUG \
+#define BRICKRED_MOMENT_LOG_DEBUG(_format, ...) \
     brickred::moment::base::InternalLogger::getInstance()->log( \
         brickred::moment::base::InternalLogger::LogLevel::DEBUG, _format, ##__VA_ARGS__)
+#define BRICKRED_MOMENT_LOG_WARNING(_format, ...) \
+    brickred::moment::base::InternalLogger::getInstance()->log( \
+        brickred::moment::base::InternalLogger::LogLevel::WARNING, _format, ##__VA_ARGS__)
+#define BRICKRED_MOMENT_LOG_ERROR(_format, ...) \
+    brickred::moment::base::InternalLogger::getInstance()->log( \
+        brickred::moment::base::InternalLogger::LogLevel::ERROR, _format, ##__VA_ARGS__)
 
 } // namespace brickred::moment::base
+
+#endif
