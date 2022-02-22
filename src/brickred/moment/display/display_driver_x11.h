@@ -15,6 +15,9 @@ public:
     bool init();
     void finalize();
 
+    bool connect();
+    void disconnect();
+
 private:
     BRICKRED_MOMENT_NONCOPYABLE(DisplayDriverX11)
 
