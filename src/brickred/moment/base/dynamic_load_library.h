@@ -21,7 +21,7 @@ public:
 
 private:
     BRICKRED_MOMENT_NONCOPYABLE(DynamicLoadLibrary)
-    
+
     class Impl;
     std::unique_ptr<Impl> pimpl_;
 };
