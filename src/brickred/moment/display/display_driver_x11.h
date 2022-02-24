@@ -15,9 +15,9 @@ public:
 
     bool init();
     void finalize();
-
     bool connect();
     void disconnect();
+
     bool createWindow(int32_t window_id,
         int32_t pos_x, int32_t pos_y, uint32_t width, uint32_t height);
     void deleteWindow(int32_t window_id);
