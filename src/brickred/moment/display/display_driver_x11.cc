@@ -1,6 +1,7 @@
 #include <brickred/moment/display/display_driver_x11.h>
 
 #include <X11/Xlib.h>
+#include <map>
 
 #include <brickred/moment/base/dynamic_load_library.h>
 #include <brickred/moment/base/internal_logger.h>
@@ -19,6 +20,7 @@ public:
         Display *, Window, int, int,
         unsigned int, unsigned int, unsigned int, int, unsigned int,
         Visual *, unsigned long, XSetWindowAttributes *);
+    using WindowMap = std::map<int32_t, Window>;
 
     Impl();
     ~Impl();
@@ -42,6 +44,7 @@ private:
     FN_XCreateWindow fn_x_create_window_;
 
     Display *display_;
+    WindowMap windows_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -63,7 +66,7 @@ bool DisplayDriverX11::Impl::init()
 {
     if (x_lib_dll_.load("libX11.so.6") == false) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "failed to load libX11.so.6");
+            "x11: failed to load libX11.so.6");
         return false;
     }
 
@@ -71,28 +74,28 @@ bool DisplayDriverX11::Impl::init()
         (FN_XOpenDisplay)x_lib_dll_.findSymbol("XOpenDisplay");
     if (nullptr == fn_x_open_display_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "failed to find symbol XOpenDisplay in X lib");
+            "x11: failed to find symbol XOpenDisplay in X lib");
         return false;
     }
     fn_x_close_display_ =
         (FN_XCloseDisplay)x_lib_dll_.findSymbol("XCloseDisplay");
     if (nullptr == fn_x_close_display_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "failed to find symbol XCloseDisplay in X lib");
+            "x11: failed to find symbol XCloseDisplay in X lib");
         return false;
     }
     fn_x_create_colormap_ =
-        (FN_XCreateColormap)x_lib_dll_.findSymbol("XCreateColorMap");
+        (FN_XCreateColormap)x_lib_dll_.findSymbol("XCreateColormap");
     if (nullptr == fn_x_create_colormap_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "failed to find symbol XCreateColorMap in X lib");
+            "x11: failed to find symbol XCreateColormap in X lib");
         return false;
     }
     fn_x_create_window_ =
         (FN_XCreateWindow)x_lib_dll_.findSymbol("XCreateWindow");
     if (nullptr == fn_x_create_window_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "failed to find symbol XCreateWindow in X lib");
+            "x11: failed to find symbol XCreateWindow in X lib");
         return false;
     }
 
@@ -120,7 +123,7 @@ bool DisplayDriverX11::Impl::connect()
     display_ = fn_x_open_display_(nullptr);
     if (nullptr == display_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "failed to open x11 display");
+            "x11: failed to open display");
         return false;
     }
 
@@ -150,21 +153,41 @@ bool DisplayDriverX11::Impl::createWindow(int32_t window_id,
         return false;
     }
 
-    /*
+    if (windows_.find(window_id) != windows_.end()) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "x11: window(%d) already exists", window_id);
+        return false;
+    }
+
     int screen = DefaultScreen(display_);
     Visual *visual = DefaultVisual(display_, screen);
     int depth = DefaultDepth(display_, screen);
     Window root_window = RootWindow(display_, screen);
     Colormap colormap = fn_x_create_colormap_(
         display_, root_window, visual, AllocNone);
+    unsigned long value_mask = CWBorderPixel | CWColormap | CWEventMask;
 
     XSetWindowAttributes window_attrs = { 0 };
-    window_attrs.color_map = colormap;
+    window_attrs.colormap = colormap;
     window_attrs.background_pixel = 0xffffffff;
     window_attrs.border_pixel = 0;
-    window_attrs.event_mask = KeyPressMask | KeyReleaseMask |
-        StructureNotifyMask | ExposureMask;
-    */
+    window_attrs.event_mask =
+        StructureNotifyMask | PropertyChangeMask |
+        ExposureMask | FocusChangeMask | VisibilityChangeMask |
+        KeyPressMask | KeyReleaseMask |
+        ButtonPressMask | ButtonReleaseMask |
+        EnterWindowMask | LeaveWindowMask | PointerMotionMask;
+
+    Window new_window = fn_x_create_window_(
+        display_, root_window, pos_x, pos_y, width, height,
+        0, depth, InputOutput, visual, value_mask, &window_attrs);
+    if (!new_window) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "x11: failed to create window");
+        return false;
+    }
+
+    windows_.insert(std::make_pair(window_id, new_window));
 
     return true;
 }
