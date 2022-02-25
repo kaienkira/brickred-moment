@@ -132,12 +132,10 @@ bool DisplayDriverX11::Impl::connect()
 
 void DisplayDriverX11::Impl::disconnect()
 {
-    if (nullptr == fn_x_close_display_) {
-        return;
-    }
-
     if (display_ != nullptr) {
-        fn_x_close_display_(display_);
+        if (fn_x_close_display_ != nullptr) {
+            fn_x_close_display_(display_);
+        }
         display_ = nullptr;
     }
 }

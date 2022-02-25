@@ -1,9 +1,19 @@
 #include <brickred/moment/display/display_driver_wayland.h>
 
+#include <wayland-client.h>
+
+#include <brickred/moment/base/dynamic_load_library.h>
+#include <brickred/moment/base/internal_logger.h>
+
 namespace brickred::moment::display {
+
+using brickred::moment::base::DynamicLoadLibrary;
 
 class DisplayDriverWayland::Impl {
 public:
+    using FN_wl_display_connect = wl_display *(*)(const char *);
+    using FN_wl_display_disconnect = void (*)(wl_display *);
+
     Impl();
     ~Impl();
 
@@ -13,33 +23,91 @@ public:
     void disconnect();
 
 private:
+    DynamicLoadLibrary wayland_client_dll_;
+
+    FN_wl_display_connect fn_wl_display_connect_;
+    FN_wl_display_disconnect fn_wl_display_disconnect_;
+
+    wl_display *display_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-DisplayDriverWayland::Impl::Impl()
+DisplayDriverWayland::Impl::Impl() :
+    fn_wl_display_connect_(nullptr),
+    fn_wl_display_disconnect_(nullptr),
+    display_(nullptr)
 {
 }
 
 DisplayDriverWayland::Impl::~Impl()
 {
+    finalize();
 }
 
 bool DisplayDriverWayland::Impl::init()
 {
+    if (wayland_client_dll_.load("libwayland-client.so.0") == false) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "wayland: failed to load libwayland-client.so.0");
+        return false;
+    }
+
+    fn_wl_display_connect_ =
+        (FN_wl_display_connect)wayland_client_dll_.findSymbol(
+            "wl_display_connect");
+    if (nullptr == fn_wl_display_connect_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "wayland: failed to find symbol wl_display_connect "
+            "in wayland-client lib");
+        return false;
+    }
+    fn_wl_display_disconnect_ =
+        (FN_wl_display_disconnect)wayland_client_dll_.findSymbol(
+            "wl_display_disconnect");
+    if (nullptr == fn_wl_display_disconnect_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "wayland: failed to find symbol wl_display_disconnect"
+            "in wayland-client lib");
+        return false;
+    }
+
     return true;
 }
 
 void DisplayDriverWayland::Impl::finalize()
 {
+    disconnect();
+
+    fn_wl_display_disconnect_ = nullptr;
+    fn_wl_display_connect_ = nullptr;
+
+    wayland_client_dll_.unload();
 }
 
 bool DisplayDriverWayland::Impl::connect()
 {
+    if (nullptr == fn_wl_display_connect_) {
+        return false;
+    }
+
+    display_ = fn_wl_display_connect_(nullptr);
+    if (nullptr == display_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "wayland: failed to open display");
+        return false;
+    }
+
     return true;
 }
 
 void DisplayDriverWayland::Impl::disconnect()
 {
+    if (display_ != nullptr) {
+        if (fn_wl_display_disconnect_ != nullptr) {
+            fn_wl_display_disconnect_(display_);
+        }
+        display_ = nullptr;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
