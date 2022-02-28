@@ -13,6 +13,10 @@ class DisplayDriverWayland::Impl {
 public:
     using FN_wl_display_connect = wl_display *(*)(const char *);
     using FN_wl_display_disconnect = void (*)(wl_display *);
+    using FN_wl_display_flush = int (*)(wl_display *);
+    using FN_wl_proxy_marshal_flags = wl_proxy *(*)(
+        wl_proxy *, uint32_t, const wl_interface*,
+        uint32_t, uint32_t, ...);
 
     Impl();
     ~Impl();
@@ -23,10 +27,15 @@ public:
     void disconnect();
 
 private:
+    static void _wl_display_get_registry(wl_display *wl_display);
+
+private:
     DynamicLoadLibrary wayland_client_dll_;
 
     FN_wl_display_connect fn_wl_display_connect_;
     FN_wl_display_disconnect fn_wl_display_disconnect_;
+    FN_wl_display_flush fn_wl_display_flush_;
+    FN_wl_proxy_marshal_flags fn_wl_proxy_marshal_flags_;
 
     wl_display *display_;
 };
@@ -35,6 +44,8 @@ private:
 DisplayDriverWayland::Impl::Impl() :
     fn_wl_display_connect_(nullptr),
     fn_wl_display_disconnect_(nullptr),
+    fn_wl_display_flush_(nullptr),
+    fn_wl_proxy_marshal_flags_(nullptr),
     display_(nullptr)
 {
 }
@@ -52,6 +63,7 @@ bool DisplayDriverWayland::Impl::init()
         return false;
     }
 
+    // wl_display_connect
     fn_wl_display_connect_ =
         (FN_wl_display_connect)wayland_client_dll_.findSymbol(
             "wl_display_connect");
@@ -61,12 +73,33 @@ bool DisplayDriverWayland::Impl::init()
             "in wayland-client lib");
         return false;
     }
+    // wl_display_disconnect
     fn_wl_display_disconnect_ =
         (FN_wl_display_disconnect)wayland_client_dll_.findSymbol(
             "wl_display_disconnect");
     if (nullptr == fn_wl_display_disconnect_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
             "wayland: failed to find symbol wl_display_disconnect"
+            "in wayland-client lib");
+        return false;
+    }
+    // wl_display_flush
+    fn_wl_display_flush_ =
+        (FN_wl_display_flush)wayland_client_dll_.findSymbol(
+            "wl_display_flush");
+    if (nullptr == fn_wl_display_flush_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "wayland: failed to find symbol wl_display_flush"
+            "in wayland-client lib");
+        return false;
+    }
+    // wl_proxy_marshal_flags
+    fn_wl_proxy_marshal_flags_ =
+        (FN_wl_proxy_marshal_flags)wayland_client_dll_.findSymbol(
+            "wl_proxy_marshal_flags");
+    if (nullptr == fn_wl_proxy_marshal_flags_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "wayland: failed to find symbol wl_proxy_marshal_flags"
             "in wayland-client lib");
         return false;
     }
@@ -78,6 +111,8 @@ void DisplayDriverWayland::Impl::finalize()
 {
     disconnect();
 
+    fn_wl_proxy_marshal_flags_ = nullptr;
+    fn_wl_display_flush_ = nullptr;
     fn_wl_display_disconnect_ = nullptr;
     fn_wl_display_connect_ = nullptr;
 
@@ -108,6 +143,11 @@ void DisplayDriverWayland::Impl::disconnect()
         }
         display_ = nullptr;
     }
+}
+
+void DisplayDriverWayland::Impl::_wl_display_get_registry(
+    wl_display *wl_display)
+{
 }
 
 ///////////////////////////////////////////////////////////////////////////////

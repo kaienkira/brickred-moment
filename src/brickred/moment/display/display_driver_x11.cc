@@ -70,6 +70,7 @@ bool DisplayDriverX11::Impl::init()
         return false;
     }
 
+    // XOpenDisplay
     fn_x_open_display_ =
         (FN_XOpenDisplay)x_lib_dll_.findSymbol("XOpenDisplay");
     if (nullptr == fn_x_open_display_) {
@@ -77,6 +78,7 @@ bool DisplayDriverX11::Impl::init()
             "x11: failed to find symbol XOpenDisplay in X lib");
         return false;
     }
+    // XCloseDisplay
     fn_x_close_display_ =
         (FN_XCloseDisplay)x_lib_dll_.findSymbol("XCloseDisplay");
     if (nullptr == fn_x_close_display_) {
@@ -84,6 +86,7 @@ bool DisplayDriverX11::Impl::init()
             "x11: failed to find symbol XCloseDisplay in X lib");
         return false;
     }
+    // XCreateColormap
     fn_x_create_colormap_ =
         (FN_XCreateColormap)x_lib_dll_.findSymbol("XCreateColormap");
     if (nullptr == fn_x_create_colormap_) {
@@ -91,6 +94,7 @@ bool DisplayDriverX11::Impl::init()
             "x11: failed to find symbol XCreateColormap in X lib");
         return false;
     }
+    // XCreateWindow
     fn_x_create_window_ =
         (FN_XCreateWindow)x_lib_dll_.findSymbol("XCreateWindow");
     if (nullptr == fn_x_create_window_) {
