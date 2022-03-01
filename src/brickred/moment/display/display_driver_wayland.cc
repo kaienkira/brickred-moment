@@ -1,6 +1,6 @@
 #include <brickred/moment/display/display_driver_wayland.h>
 
-#include <wayland-client.h>
+#include <wayland-client-core.h>
 
 #include <brickred/moment/base/dynamic_load_library.h>
 #include <brickred/moment/base/internal_logger.h>
@@ -25,9 +25,6 @@ public:
     void finalize();
     bool connect();
     void disconnect();
-
-private:
-    static void _wl_display_get_registry(wl_display *wl_display);
 
 private:
     DynamicLoadLibrary wayland_client_dll_;
@@ -143,11 +140,6 @@ void DisplayDriverWayland::Impl::disconnect()
         }
         display_ = nullptr;
     }
-}
-
-void DisplayDriverWayland::Impl::_wl_display_get_registry(
-    wl_display *wl_display)
-{
 }
 
 ///////////////////////////////////////////////////////////////////////////////
