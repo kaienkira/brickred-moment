@@ -2,6 +2,8 @@
 
 #if defined(BRICKRED_MOMENT_BUILD_PLATFORM_LINUX)
 #include "display_service_linux.cc"
+#elif defined(BRICKRED_MOMENT_BUILD_PLATFORM_WINDOWS)
+#include "display_service_windows.cc"
 #endif
 
 namespace brickred::moment::display {
