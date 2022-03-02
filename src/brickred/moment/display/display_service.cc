@@ -1,13 +1,37 @@
 #include <brickred/moment/display/display_service.h>
 
-#if defined(BRICKRED_MOMENT_BUILD_PLATFORM_LINUX)
-#include "display_service_linux.cc"
-#elif defined(BRICKRED_MOMENT_BUILD_PLATFORM_WINDOWS)
-#include "display_service_windows.cc"
-#endif
-
 namespace brickred::moment::display {
 
+class DisplayService::Impl {
+public:
+    Impl();
+    ~Impl();
+
+    bool init();
+    void finalize();
+
+private:
+};
+
+///////////////////////////////////////////////////////////////////////////////
+DisplayService::Impl::Impl()
+{
+}
+
+DisplayService::Impl::~Impl()
+{
+}
+
+bool DisplayService::Impl::init()
+{
+    return true;
+}
+
+void DisplayService::Impl::finalize()
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////
 DisplayService::DisplayService() :
     pimpl_(new Impl())
 {
@@ -25,11 +49,6 @@ bool DisplayService::init()
 void DisplayService::finalize()
 {
     pimpl_->finalize();
-}
-
-bool DisplayService::connect()
-{
-    return pimpl_->connect();
 }
 
 } // namespace brickred::moment::display

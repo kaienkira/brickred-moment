@@ -12,8 +12,6 @@ public:
     bool init();
     void finalize();
 
-    bool connect();
-
 private:
     BRICKRED_MOMENT_SINGLETON(DisplayService)
 
