@@ -1,7 +1,6 @@
 #include <brickred/moment/display/display_driver_x11.h>
 
 #include <X11/Xlib.h>
-#include <map>
 
 #include <brickred/moment/base/dynamic_load_library.h>
 #include <brickred/moment/base/internal_logger.h>
@@ -20,7 +19,6 @@ public:
         Display *, Window, int, int,
         unsigned int, unsigned int, unsigned int, int, unsigned int,
         Visual *, unsigned long, XSetWindowAttributes *);
-    using WindowMap = std::map<int32_t, Window>;
 
     Impl();
     ~Impl();
@@ -30,11 +28,9 @@ public:
     bool connect();
     void disconnect();
 
-    bool createWindow(int32_t window_id,
+    bool createMainWindow(
         int32_t pos_x, int32_t pos_y,
         uint32_t width, uint32_t height);
-    void deleteWindow(int32_t window_id);
-    bool showWindow(int32_t window_id);
 
 private:
     DynamicLoadLibrary x_lib_dll_;
@@ -45,7 +41,6 @@ private:
     FN_XCreateWindow fn_x_create_window_;
 
     Display *display_;
-    WindowMap windows_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -145,7 +140,7 @@ void DisplayDriverX11::Impl::disconnect()
     }
 }
 
-bool DisplayDriverX11::Impl::createWindow(int32_t window_id,
+bool DisplayDriverX11::Impl::createMainWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
@@ -154,12 +149,6 @@ bool DisplayDriverX11::Impl::createWindow(int32_t window_id,
     }
     if (nullptr == fn_x_create_colormap_ ||
         nullptr == fn_x_create_window_) {
-        return false;
-    }
-
-    if (windows_.find(window_id) != windows_.end()) {
-        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: window(%d) already exists", window_id);
         return false;
     }
 
@@ -187,21 +176,10 @@ bool DisplayDriverX11::Impl::createWindow(int32_t window_id,
         0, depth, InputOutput, visual, value_mask, &window_attrs);
     if (!new_window) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to create window");
+            "x11: failed to create main window");
         return false;
     }
 
-    windows_.insert(std::make_pair(window_id, new_window));
-
-    return true;
-}
-
-void DisplayDriverX11::Impl::deleteWindow(int32_t window_id)
-{
-}
-
-bool DisplayDriverX11::Impl::showWindow(int32_t window_id)
-{
     return true;
 }
 
@@ -235,21 +213,11 @@ void DisplayDriverX11::disconnect()
     pimpl_->disconnect();
 }
 
-bool DisplayDriverX11::createWindow(int32_t window_id,
+bool DisplayDriverX11::createMainWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    return pimpl_->createWindow(window_id, pos_x, pos_y, width, height);
-}
-
-void DisplayDriverX11::deleteWindow(int32_t window_id)
-{
-    pimpl_->deleteWindow(window_id);
-}
-
-bool DisplayDriverX11::showWindow(int32_t window_id)
-{
-    return pimpl_->showWindow(window_id);
+    return pimpl_->createMainWindow(pos_x, pos_y, width, height);
 }
 
 } // namespace brickred::moment::display
