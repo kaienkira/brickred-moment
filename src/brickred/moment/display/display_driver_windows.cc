@@ -1,6 +1,6 @@
 #include <brickred/moment/display/display_driver_windows.h>
 
-#include <winuser.h>
+#include <windows.h>
 
 namespace brickred::moment::display {
 
@@ -36,12 +36,14 @@ void DisplayDriverWindows::Impl::finalize()
 {
 }
 
-bool DisplayDriverWindows::createMainWindow(
+bool DisplayDriverWindows::Impl::createMainWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
     DWORD style = 0;
     DWORD ex_style = 0;
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -68,8 +70,7 @@ bool DisplayDriverWindows::createMainWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    return pimpl_->createWindow(
-        window_id, pos_x, pos_y, width, height);
+    return pimpl_->createWindow(pos_x, pos_y, width, height);
 }
 
 } // namespace brickred::moment::display
