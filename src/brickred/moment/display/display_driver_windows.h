@@ -16,6 +16,10 @@ public:
     bool init();
     void finalize();
 
+    bool createWindow(int32_t window_id,
+        int32_t pos_x, int32_t pos_y,
+        uint32_t width, uint32_t height);
+
 private:
     BRICKRED_MOMENT_NONCOPYABLE(DisplayDriverWindows)
 

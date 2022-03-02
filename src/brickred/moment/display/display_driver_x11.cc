@@ -31,7 +31,8 @@ public:
     void disconnect();
 
     bool createWindow(int32_t window_id,
-        int32_t pos_x, int32_t pos_y, uint32_t width, uint32_t height);
+        int32_t pos_x, int32_t pos_y,
+        uint32_t width, uint32_t height);
     void deleteWindow(int32_t window_id);
     bool showWindow(int32_t window_id);
 
@@ -145,7 +146,8 @@ void DisplayDriverX11::Impl::disconnect()
 }
 
 bool DisplayDriverX11::Impl::createWindow(int32_t window_id,
-    int32_t pos_x, int32_t pos_y, uint32_t width, uint32_t height)
+    int32_t pos_x, int32_t pos_y,
+    uint32_t width, uint32_t height)
 {
     if (nullptr == display_) {
         return false;
@@ -234,7 +236,8 @@ void DisplayDriverX11::disconnect()
 }
 
 bool DisplayDriverX11::createWindow(int32_t window_id,
-    int32_t pos_x, int32_t pos_y, uint32_t width, uint32_t height)
+    int32_t pos_x, int32_t pos_y,
+    uint32_t width, uint32_t height)
 {
     return pimpl_->createWindow(window_id, pos_x, pos_y, width, height);
 }
