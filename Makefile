@@ -17,12 +17,21 @@ else ifeq ($(OS), Windows_NT)
 build: build-windows
 clean: clean-windows
 else
-$(error Platform $(UNAME_S) not Supported)
+$(error Platform not Supported)
 endif
 
 build-linux:
 	@$(call ECHO, "[build libbrickredmoment]")
+	@mkdir -p build/linux/
 	@$(MAKE) -f mak/libbrickredmoment_linux.mak release
 
 clean-linux:
-	@$(MAKE) -f mak/libbrickredmoment_linux.mak clean
+	@rm -rf build/linux/
+
+build-windows:
+	@$(call ECHO, "[build libbrickredmoment]")
+	@mkdir -p build/windows/
+	@$(MAKE) -f mak/libbrickredmoment_windows.mak release
+
+clean-windows:
+	@rm -rf build/windows/

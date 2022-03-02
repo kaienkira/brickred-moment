@@ -35,11 +35,11 @@ endef
 #-*- MAIN -*-
 #==============================================================================
 ifeq ($(LINK_TYPE), exec)
-	FINAL_TARGET = $(TARGET)
+	FINAL_TARGET = $(TARGET).exe
 endif
 
 ifeq ($(LINK_TYPE), dynamic)
-	FINAL_TARGET = $(TARGET).so
+	FINAL_TARGET = $(TARGET).dll
     CFLAGS += -fPIC
     CPPFLAGS += -fPIC
 endif

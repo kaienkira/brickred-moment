@@ -1,6 +1,8 @@
 #include <brickred/moment/base/dynamic_load_library.h>
 
-#if defined(BRICKRED_MOMENT_BUILD_PLATFORM_LINUX)
+#if defined(BRICKRED_MOMENT_BUILD_PLATFORM_WINDOWS)
+#include "dynamic_load_library_windows.cc"
+#else
 #include "dynamic_load_library_posix.cc"
 #endif
 
