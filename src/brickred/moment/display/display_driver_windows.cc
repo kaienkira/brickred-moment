@@ -70,7 +70,7 @@ bool DisplayDriverWindows::createMainWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    return pimpl_->createWindow(pos_x, pos_y, width, height);
+    return pimpl_->createMainWindow(pos_x, pos_y, width, height);
 }
 
 } // namespace brickred::moment::display
