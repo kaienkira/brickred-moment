@@ -5,12 +5,24 @@ define ECHO
 endef
 
 .PHONY: \
-build-linux-release \
-clean
+build clean \
+build-linux clean-linux \
+build-windows clean-windows
 
-build-linux-release:
-	@$(call ECHO, "[build linux release]")
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Linux)
+build: build-linux
+clean: clean-linux
+else ifeq ($(OS), Windows_NT)
+build: build-windows
+clean: clean-windows
+else
+$(error Platform $(UNAME_S) not Supported)
+endif
+
+build-linux:
+	@$(call ECHO, "[build libbrickredmoment]")
 	@$(MAKE) -f mak/libbrickredmoment_linux.mak release
 
-clean:
+clean-linux:
 	@$(MAKE) -f mak/libbrickredmoment_linux.mak clean
