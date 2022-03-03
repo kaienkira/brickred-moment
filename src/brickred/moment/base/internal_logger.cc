@@ -7,8 +7,8 @@ namespace brickred::moment::base {
 BRICKRED_MOMENT_PRECREATED_SINGLETON_IMPL(InternalLogger)
 
 static void defaultLogFunc(int level, const char *format, va_list args) {
-    if (level < InternalLogger::LogLevel::MIN ||
-        level >= InternalLogger::LogLevel::MAX) {
+    if (level < InternalLogger::LogLevel::L_MIN ||
+        level >= InternalLogger::LogLevel::L_MAX) {
         return;
     }
 
