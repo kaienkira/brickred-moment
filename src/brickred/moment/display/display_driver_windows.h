@@ -19,6 +19,7 @@ public:
     bool createMainWindow(
         int32_t pos_x, int32_t pos_y,
         uint32_t width, uint32_t height);
+    void pollEvents(bool block = false);
 
 private:
     BRICKRED_MOMENT_NONCOPYABLE(DisplayDriverWindows)

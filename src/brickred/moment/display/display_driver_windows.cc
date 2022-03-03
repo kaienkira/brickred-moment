@@ -2,6 +2,7 @@
 
 #include <cstring>
 #define WIN32_LEAN_AND_MEAN
+#define UNICODE
 #include <windows.h>
 
 #include <brickred/moment/base/internal_logger.h>
@@ -21,6 +22,7 @@ public:
     bool createMainWindow(
         int32_t pos_x, int32_t pos_y,
         uint32_t width, uint32_t height);
+    void pollEvents(bool block);
 
 private:
     static LRESULT windowProc(HWND hWnd, UINT uMsg,
@@ -49,6 +51,7 @@ bool DisplayDriverWindows::Impl::init()
     wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     wc.lpfnWndProc = (WNDPROC)DisplayDriverWindows::Impl::windowProc;
     wc.hInstance = ::GetModuleHandleW(nullptr);
+    wc.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
     wc.lpszClassName = BRICKRED_MOMENT_WINDOW_CLASS_NAME;
     if (RegisterClassExW(&wc) == 0) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
@@ -67,17 +70,53 @@ bool DisplayDriverWindows::Impl::createMainWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    DWORD style = 0;
-    DWORD ex_style = 0;
+    DWORD style = WS_CLIPSIBLINGS |
+                  WS_CLIPCHILDREN |
+                  WS_OVERLAPPEDWINDOW |
+                  WS_VISIBLE;
+    DWORD ex_style = WS_EX_APPWINDOW;
+
+    if (pos_x < 0) {
+        pos_x = CW_USEDEFAULT;
+    }
+    if (pos_y < 0) {
+        pos_y = CW_USEDEFAULT;
+    }
+
+    main_window_ = ::CreateWindowExW(
+        ex_style,
+        BRICKRED_MOMENT_WINDOW_CLASS_NAME,
+        L"",
+        style,
+        pos_x, pos_y,
+        width, height,
+        nullptr, // hWndParent
+        nullptr, // hMenu
+        ::GetModuleHandleW(nullptr),
+        nullptr);
 
     return true;
 }
 
+void DisplayDriverWindows::Impl::pollEvents(bool block)
+{
+    MSG msg;
+
+    if (block) {
+        ::WaitMessage();
+    }
+    while (::PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
+        ::TranslateMessage(&msg);
+        ::DispatchMessageW(&msg);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
 LRESULT DisplayDriverWindows::Impl::windowProc(
     HWND hWnd, UINT uMsg,
     WPARAM wParam, LPARAM lParam)
 {
-    return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+    return ::DefWindowProcW(hWnd, uMsg, wParam, lParam);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -105,6 +144,11 @@ bool DisplayDriverWindows::createMainWindow(
     uint32_t width, uint32_t height)
 {
     return pimpl_->createMainWindow(pos_x, pos_y, width, height);
+}
+
+void DisplayDriverWindows::pollEvents(bool block)
+{
+    pimpl_->pollEvents(block);
 }
 
 } // namespace brickred::moment::display
