@@ -17,7 +17,7 @@ else ifeq ($(OS), Windows_NT)
 build: build-windows
 clean: clean-windows
 else
-$(error Platform not Supported)
+$(error platform not supported)
 endif
 
 build-linux:
