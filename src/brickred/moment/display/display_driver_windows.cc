@@ -30,6 +30,7 @@ private:
     HWND main_window_;
 };
 
+///////////////////////////////////////////////////////////////////////////////
 DisplayDriverWindows::Impl::Impl() :
     main_window_(nullptr)
 {
