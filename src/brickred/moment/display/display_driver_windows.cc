@@ -25,10 +25,12 @@ public:
     void pollEvents(bool block);
 
 private:
-    static LRESULT windowProc(HWND hWnd, UINT uMsg,
-        WPARAM wParam, LPARAM lParam);
+    static LRESULT windowProc(
+        HWND hwnd, UINT id,
+        WPARAM wparam, LPARAM lparam);
 
 private:
+    bool quit_;
     HWND main_window_;
 };
 
@@ -113,10 +115,10 @@ void DisplayDriverWindows::Impl::pollEvents(bool block)
 
 ///////////////////////////////////////////////////////////////////////////////
 LRESULT DisplayDriverWindows::Impl::windowProc(
-    HWND hWnd, UINT uMsg,
-    WPARAM wParam, LPARAM lParam)
+    HWND hwnd, UINT id,
+    WPARAM wparam, LPARAM lparam)
 {
-    return ::DefWindowProcW(hWnd, uMsg, wParam, lParam);
+    return ::DefWindowProcW(hwnd, id, wparam, lparam);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
