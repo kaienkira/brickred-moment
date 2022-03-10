@@ -30,7 +30,6 @@ private:
         WPARAM wparam, LPARAM lparam);
 
 private:
-    bool quit_;
     HWND main_window_;
 };
 
