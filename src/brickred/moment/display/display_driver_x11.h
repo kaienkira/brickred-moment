@@ -18,9 +18,16 @@ public:
     bool connect();
     void disconnect();
 
-    bool createMainWindow(
+    bool createWindow(
+        int32_t window_id,
         int32_t pos_x, int32_t pos_y,
         uint32_t width, uint32_t height);
+    void destoryWindow(int32_t window_id);
+    void destoryAllWindows();
+    bool checkWindowShouldClose(int32_t window_id) const;
+    void setWindowShouldClose(int32_t window_id, bool should_close);
+
+    void pollEvents(bool block = false);
 
 private:
     BRICKRED_MOMENT_NONCOPYABLE(DisplayDriverX11)

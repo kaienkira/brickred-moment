@@ -9,6 +9,36 @@ namespace brickred::moment::display {
 
 using brickred::moment::base::DynamicLoadLibrary;
 
+namespace {
+
+class Window {
+public:
+    Window(Window handler);
+    ~Window();
+
+    Window getHandler() { return handler_; }
+    bool checkShouldClose() const { return should_close_; }
+    void setShouldClose(bool should_close) { should_close_ = should_close; }
+
+private:
+    Window handler_;
+    bool should_close_;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+Window::Window(HWND handler) :
+    handler_(handler),
+    should_close_(false)
+{
+}
+
+Window::~Window()
+{
+}
+
+} // namespace
+
+///////////////////////////////////////////////////////////////////////////////
 class DisplayDriverX11::Impl {
 public:
     using FN_XOpenDisplay = Display *(*)(const char *);
@@ -19,6 +49,7 @@ public:
         Display *, Window, int, int,
         unsigned int, unsigned int, unsigned int, int, unsigned int,
         Visual *, unsigned long, XSetWindowAttributes *);
+    using WindowMap = std::map<int32_t, Window *>;
 
     Impl();
     ~Impl();
@@ -41,6 +72,7 @@ private:
     FN_XCreateWindow fn_x_create_window_;
 
     Display *display_;
+    WindowMap windows_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -62,7 +94,7 @@ bool DisplayDriverX11::Impl::init()
 {
     if (x_lib_dll_.load("libX11.so.6") == false) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to load libX11.so.6");
+            "display_x11: failed to load libX11.so.6");
         return false;
     }
 
@@ -71,7 +103,7 @@ bool DisplayDriverX11::Impl::init()
         (FN_XOpenDisplay)x_lib_dll_.findSymbol("XOpenDisplay");
     if (nullptr == fn_x_open_display_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to find symbol XOpenDisplay in X lib");
+            "display_x11: failed to find symbol XOpenDisplay in X lib");
         return false;
     }
     // XCloseDisplay
@@ -79,7 +111,7 @@ bool DisplayDriverX11::Impl::init()
         (FN_XCloseDisplay)x_lib_dll_.findSymbol("XCloseDisplay");
     if (nullptr == fn_x_close_display_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to find symbol XCloseDisplay in X lib");
+            "display_x11: failed to find symbol XCloseDisplay in X lib");
         return false;
     }
     // XCreateColormap
@@ -87,7 +119,7 @@ bool DisplayDriverX11::Impl::init()
         (FN_XCreateColormap)x_lib_dll_.findSymbol("XCreateColormap");
     if (nullptr == fn_x_create_colormap_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to find symbol XCreateColormap in X lib");
+            "display_x11: failed to find symbol XCreateColormap in X lib");
         return false;
     }
     // XCreateWindow
@@ -95,7 +127,7 @@ bool DisplayDriverX11::Impl::init()
         (FN_XCreateWindow)x_lib_dll_.findSymbol("XCreateWindow");
     if (nullptr == fn_x_create_window_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to find symbol XCreateWindow in X lib");
+            "display_x11: failed to find symbol XCreateWindow in X lib");
         return false;
     }
 
@@ -123,7 +155,7 @@ bool DisplayDriverX11::Impl::connect()
     display_ = fn_x_open_display_(nullptr);
     if (nullptr == display_) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to open display");
+            "display_x11: failed to open display");
         return false;
     }
 
@@ -140,7 +172,8 @@ void DisplayDriverX11::Impl::disconnect()
     }
 }
 
-bool DisplayDriverX11::Impl::createMainWindow(
+bool DisplayDriverX11::Impl::createWindow(
+    int32_t window_id,
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
@@ -174,9 +207,9 @@ bool DisplayDriverX11::Impl::createMainWindow(
     Window new_window = fn_x_create_window_(
         display_, root_window, pos_x, pos_y, width, height,
         0, depth, InputOutput, visual, value_mask, &window_attrs);
-    if (!new_window) {
+    if (nullptr == new_window) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "x11: failed to create main window");
+            "display_x11: failed to create main window");
         return false;
     }
 
@@ -213,11 +246,34 @@ void DisplayDriverX11::disconnect()
     pimpl_->disconnect();
 }
 
-bool DisplayDriverX11::createMainWindow(
+bool DisplayDriverX11::createWindow(
+    int32_t window_id,
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    return pimpl_->createMainWindow(pos_x, pos_y, width, height);
+    return pimpl_->createWindow(window_id, pos_x, pos_y, width, height);
+}
+
+void DisplayDriverX11::destoryWindow(int32_t window_id)
+{
+    pimpl_->destoryWindow(window_id);
+}
+
+void DisplayDriverX11::destoryAllWindows()
+{
+    pimpl_->destoryAllWindows();
+}
+
+bool DisplayDriverX11::checkWindowShouldClose(
+    int32_t window_id) const
+{
+    return pimpl_->checkWindowShouldClose(window_id);
+}
+
+void DisplayDriverX11::setWindowShouldClose(
+    int32_t window_id, bool should_close)
+{
+    pimpl_->setWindowShouldClose(window_id, should_close);
 }
 
 } // namespace brickred::moment::display
