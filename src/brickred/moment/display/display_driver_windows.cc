@@ -229,7 +229,7 @@ void DisplayDriverWindows::Impl::pollEvents(bool block)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-const Window *DisplayDriverWindows::Impl::findWindowById(
+const WindowData *DisplayDriverWindows::Impl::findWindowById(
     int32_t window_id) const
 {
     WindowDataMap::const_iterator iter = windows_.find(window_id);
@@ -266,7 +266,7 @@ WindowData *DisplayDriverWindows::Impl::findWindowByHandler(
 void DisplayDriverWindows::Impl::destoryWindow(
     WindowDataMap::iterator iter)
 {
-    Window *window = iter->second;
+    WindowData *window = iter->second;
     window_handler_index_.erase(window->getHandler());
     windows_.erase(iter);
     ::DestroyWindow(window->getHandler());
