@@ -1,6 +1,7 @@
 #include <brickred/moment/display/display_driver_x11.h>
 
 #include <X11/Xlib.h>
+#include <map>
 
 #include <brickred/moment/base/dynamic_load_library.h>
 #include <brickred/moment/base/internal_logger.h>
@@ -11,10 +12,10 @@ using brickred::moment::base::DynamicLoadLibrary;
 
 namespace {
 
-class Window {
+class WindowData {
 public:
-    Window(Window handler);
-    ~Window();
+    WindowData(Window handler);
+    ~WindowData();
 
     Window getHandler() { return handler_; }
     bool checkShouldClose() const { return should_close_; }
@@ -26,13 +27,13 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-Window::Window(HWND handler) :
+WindowData::WindowData(Window handler) :
     handler_(handler),
     should_close_(false)
 {
 }
 
-Window::~Window()
+WindowData::~WindowData()
 {
 }
 
@@ -49,7 +50,7 @@ public:
         Display *, Window, int, int,
         unsigned int, unsigned int, unsigned int, int, unsigned int,
         Visual *, unsigned long, XSetWindowAttributes *);
-    using WindowMap = std::map<int32_t, Window *>;
+    using WindowDataMap = std::map<int32_t, WindowData *>;
 
     Impl();
     ~Impl();
@@ -59,9 +60,14 @@ public:
     bool connect();
     void disconnect();
 
-    bool createMainWindow(
+    bool createWindow(
+        int32_t window_id,
         int32_t pos_x, int32_t pos_y,
         uint32_t width, uint32_t height);
+    void destoryWindow(int32_t window_id);
+    void destoryAllWindows();
+    bool checkWindowShouldClose(int32_t window_id) const;
+    void setWindowShouldClose(int32_t window_id, bool should_close);
 
 private:
     DynamicLoadLibrary x_lib_dll_;
@@ -72,7 +78,7 @@ private:
     FN_XCreateWindow fn_x_create_window_;
 
     Display *display_;
-    WindowMap windows_;
+    WindowDataMap windows_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -204,16 +210,38 @@ bool DisplayDriverX11::Impl::createWindow(
         ButtonPressMask | ButtonReleaseMask |
         EnterWindowMask | LeaveWindowMask | PointerMotionMask;
 
-    Window new_window = fn_x_create_window_(
+    Window window_handler = fn_x_create_window_(
         display_, root_window, pos_x, pos_y, width, height,
         0, depth, InputOutput, visual, value_mask, &window_attrs);
-    if (nullptr == new_window) {
+    if (!window_handler) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
             "display_x11: failed to create main window");
         return false;
     }
 
+    std::unique_ptr<WindowData> window(
+        new WindowData(window_handler));
+
     return true;
+}
+
+void DisplayDriverX11::Impl::destoryWindow(int32_t window_id)
+{
+}
+
+void DisplayDriverX11::Impl::destoryAllWindows()
+{
+}
+
+bool DisplayDriverX11::Impl::checkWindowShouldClose(
+    int32_t window_id) const
+{
+    return true;
+}
+
+void DisplayDriverX11::Impl::setWindowShouldClose(
+    int32_t window_id, bool should_close)
+{
 }
 
 ///////////////////////////////////////////////////////////////////////////////

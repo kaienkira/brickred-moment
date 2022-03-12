@@ -14,10 +14,10 @@ namespace brickred::moment::display {
 
 namespace {
 
-class Window {
+class WindowData {
 public:
-    Window(HWND handler);
-    ~Window();
+    WindowData(HWND handler);
+    ~WindowData();
 
     HWND getHandler() { return handler_; }
     bool checkShouldClose() const { return should_close_; }
@@ -29,13 +29,13 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-Window::Window(HWND handler) :
+WindowData::WindowData(HWND handler) :
     handler_(handler),
     should_close_(false)
 {
 }
 
-Window::~Window()
+WindowData::~WindowData()
 {
 }
 
@@ -44,8 +44,8 @@ Window::~Window()
 ///////////////////////////////////////////////////////////////////////////////
 class DisplayDriverWindows::Impl {
 public:
-    using WindowMap = std::map<int32_t, Window *>;
-    using WindowHandleIndex = std::map<HWND, Window *>;
+    using WindowDataMap = std::map<int32_t, WindowData *>;
+    using WindowDataHandleIndex = std::map<HWND, WindowData *>;
 
     Impl();
     ~Impl();
@@ -65,10 +65,10 @@ public:
     void pollEvents(bool block);
 
 private:
-    const Window *findWindowById(int32_t window_id) const;
-    Window *findWindowById(int32_t window_id);
-    Window *findWindowByHandler(HWND window_handler);
-    void destoryWindow(WindowMap::iterator iter);
+    const WindowData *findWindowById(int32_t window_id) const;
+    WindowData *findWindowById(int32_t window_id);
+    WindowData *findWindowByHandler(HWND window_handler);
+    void destoryWindow(WindowDataMap::iterator iter);
 
 private:
     static LRESULT windowProc(
@@ -79,8 +79,8 @@ private:
         WPARAM wparam, LPARAM lparam);
 
 private:
-    WindowMap windows_;
-    WindowHandleIndex window_handler_index_;
+    WindowDataMap windows_;
+    WindowDataHandleIndex window_handler_index_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -159,9 +159,10 @@ bool DisplayDriverWindows::Impl::createWindow(
         return false;
     }
 
-    std::unique_ptr<Window> window(new Window(window_handler));
+    std::unique_ptr<WindowData> window(
+        new WindowData(window_handler));
     windows_.insert(std::make_pair(window_id, window.get()));
-    Window *window_raw = window.release();
+    WindowData *window_raw = window.release();
     window_handler_index_.insert(std::make_pair(
         window_raw->getHandler(), window_raw));
 
@@ -170,7 +171,7 @@ bool DisplayDriverWindows::Impl::createWindow(
 
 void DisplayDriverWindows::Impl::destoryWindow(int32_t window_id)
 {
-    WindowMap::iterator iter = windows_.find(window_id);
+    WindowDataMap::iterator iter = windows_.find(window_id);
     if (iter == windows_.end()) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
             "display_windows: window(%d) not found", window_id);
@@ -182,7 +183,7 @@ void DisplayDriverWindows::Impl::destoryWindow(int32_t window_id)
 
 void DisplayDriverWindows::Impl::destoryAllWindows()
 {
-    for (WindowMap::iterator iter = windows_.begin();
+    for (WindowDataMap::iterator iter = windows_.begin();
          iter != windows_.end();) {
         destoryWindow(iter++);
     }
@@ -204,7 +205,7 @@ bool DisplayDriverWindows::Impl::checkWindowShouldClose(
 void DisplayDriverWindows::Impl::setWindowShouldClose(
     int32_t window_id, bool should_close)
 {
-    Window *window = findWindowById(window_id);
+    WindowData *window = findWindowById(window_id);
     if (nullptr == window) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
             "display_windows: window(%d) not found", window_id);
@@ -231,7 +232,7 @@ void DisplayDriverWindows::Impl::pollEvents(bool block)
 const Window *DisplayDriverWindows::Impl::findWindowById(
     int32_t window_id) const
 {
-    WindowMap::const_iterator iter = windows_.find(window_id);
+    WindowDataMap::const_iterator iter = windows_.find(window_id);
     if (iter == windows_.end()) {
         return nullptr;
     }
@@ -239,9 +240,10 @@ const Window *DisplayDriverWindows::Impl::findWindowById(
     return iter->second;
 }
 
-Window *DisplayDriverWindows::Impl::findWindowById(int32_t window_id)
+WindowData *DisplayDriverWindows::Impl::findWindowById(
+    int32_t window_id)
 {
-    WindowMap::iterator iter = windows_.find(window_id);
+    WindowDataMap::iterator iter = windows_.find(window_id);
     if (iter == windows_.end()) {
         return nullptr;
     }
@@ -249,9 +251,10 @@ Window *DisplayDriverWindows::Impl::findWindowById(int32_t window_id)
     return iter->second;
 }
 
-Window *DisplayDriverWindows::Impl::findWindowByHandler(HWND window_handler)
+WindowData *DisplayDriverWindows::Impl::findWindowByHandler(
+    HWND window_handler)
 {
-    WindowHandleIndex::iterator iter =
+    WindowDataHandleIndex::iterator iter =
         window_handler_index_.find(window_handler);
     if (iter == window_handler_index_.end()) {
         return nullptr;
@@ -260,7 +263,8 @@ Window *DisplayDriverWindows::Impl::findWindowByHandler(HWND window_handler)
     return iter->second;
 }
 
-void DisplayDriverWindows::Impl::destoryWindow(WindowMap::iterator iter)
+void DisplayDriverWindows::Impl::destoryWindow(
+    WindowDataMap::iterator iter)
 {
     Window *window = iter->second;
     window_handler_index_.erase(window->getHandler());
@@ -283,7 +287,7 @@ LRESULT DisplayDriverWindows::Impl::doWindowProc(
     WPARAM wparam, LPARAM lparam)
 {
     if (WM_CLOSE == id) {
-        Window *window = findWindowByHandler(hwnd);
+        WindowData *window = findWindowByHandler(hwnd);
         if (window != nullptr) {
             window->setShouldClose(true);
             return 0;
