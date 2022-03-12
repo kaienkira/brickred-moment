@@ -192,7 +192,7 @@ void DisplayDriverWindows::Impl::destoryAllWindows()
 bool DisplayDriverWindows::Impl::checkWindowShouldClose(
     int32_t window_id) const
 {
-    const Window *window = findWindowById(window_id);
+    const WindowData *window = findWindowById(window_id);
     if (nullptr == window) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
             "display_windows: window(%d) not found", window_id);
