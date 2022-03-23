@@ -69,6 +69,8 @@ public:
     bool checkWindowShouldClose(int32_t window_id) const;
     void setWindowShouldClose(int32_t window_id, bool should_close);
 
+    void pollEvents(bool block);
+
 private:
     DynamicLoadLibrary x_lib_dll_;
 
@@ -221,6 +223,8 @@ bool DisplayDriverX11::Impl::createWindow(
 
     std::unique_ptr<WindowData> window(
         new WindowData(window_handler));
+    windows_.insert(std::make_pair(window_id, window.get()));
+    window.release();
 
     return true;
 }
@@ -241,6 +245,10 @@ bool DisplayDriverX11::Impl::checkWindowShouldClose(
 
 void DisplayDriverX11::Impl::setWindowShouldClose(
     int32_t window_id, bool should_close)
+{
+}
+
+void DisplayDriverX11::Impl::pollEvents(bool block)
 {
 }
 
@@ -302,6 +310,11 @@ void DisplayDriverX11::setWindowShouldClose(
     int32_t window_id, bool should_close)
 {
     pimpl_->setWindowShouldClose(window_id, should_close);
+}
+
+void DisplayDriverX11::pollEvents(bool block)
+{
+    pimpl_->pollEvents(block);
 }
 
 } // namespace brickred::moment::display

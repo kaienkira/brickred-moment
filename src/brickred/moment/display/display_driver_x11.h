@@ -10,9 +10,6 @@ namespace brickred::moment::display {
 
 class DisplayDriverX11 {
 public:
-    DisplayDriverX11();
-    ~DisplayDriverX11();
-
     bool init();
     void finalize();
     bool connect();
@@ -30,7 +27,7 @@ public:
     void pollEvents(bool block = false);
 
 private:
-    BRICKRED_MOMENT_NONCOPYABLE(DisplayDriverX11)
+    BRICKRED_MOMENT_SINGLETON(DisplayDriverX11)
 
     class Impl;
     std::unique_ptr<Impl> pimpl_;
