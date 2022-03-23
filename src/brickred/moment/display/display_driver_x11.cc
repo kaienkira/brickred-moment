@@ -50,6 +50,9 @@ public:
         Display *, Window, int, int,
         unsigned int, unsigned int, unsigned int, int, unsigned int,
         Visual *, unsigned long, XSetWindowAttributes *);
+    using FN_XInternAtom = Atom (*)(
+        Display *, const char *, Bool);
+
     using WindowDataMap = std::map<int32_t, WindowData *>;
 
     Impl();
@@ -72,12 +75,16 @@ public:
     void pollEvents(bool block);
 
 private:
-    DynamicLoadLibrary x_lib_dll_;
+    bool loadXlibDll();
+    void unloadXlibDll();
 
+private:
+    DynamicLoadLibrary x_lib_dll_;
     FN_XOpenDisplay fn_x_open_display_;
     FN_XCloseDisplay fn_x_close_display_;
     FN_XCreateColormap fn_x_create_colormap_;
     FN_XCreateWindow fn_x_create_window_;
+    FN_XInternAtom fn_x_intern_atom_;
 
     Display *display_;
     WindowDataMap windows_;
@@ -89,6 +96,7 @@ DisplayDriverX11::Impl::Impl() :
     fn_x_close_display_(nullptr),
     fn_x_create_colormap_(nullptr),
     fn_x_create_window_(nullptr),
+    fn_x_intern_atom_(nullptr),
     display_(nullptr)
 {
 }
@@ -100,42 +108,7 @@ DisplayDriverX11::Impl::~Impl()
 
 bool DisplayDriverX11::Impl::init()
 {
-    if (x_lib_dll_.load("libX11.so.6") == false) {
-        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "display_x11: failed to load libX11.so.6");
-        return false;
-    }
-
-    // XOpenDisplay
-    fn_x_open_display_ =
-        (FN_XOpenDisplay)x_lib_dll_.findSymbol("XOpenDisplay");
-    if (nullptr == fn_x_open_display_) {
-        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "display_x11: failed to find symbol XOpenDisplay in X lib");
-        return false;
-    }
-    // XCloseDisplay
-    fn_x_close_display_ =
-        (FN_XCloseDisplay)x_lib_dll_.findSymbol("XCloseDisplay");
-    if (nullptr == fn_x_close_display_) {
-        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "display_x11: failed to find symbol XCloseDisplay in X lib");
-        return false;
-    }
-    // XCreateColormap
-    fn_x_create_colormap_ =
-        (FN_XCreateColormap)x_lib_dll_.findSymbol("XCreateColormap");
-    if (nullptr == fn_x_create_colormap_) {
-        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "display_x11: failed to find symbol XCreateColormap in X lib");
-        return false;
-    }
-    // XCreateWindow
-    fn_x_create_window_ =
-        (FN_XCreateWindow)x_lib_dll_.findSymbol("XCreateWindow");
-    if (nullptr == fn_x_create_window_) {
-        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
-            "display_x11: failed to find symbol XCreateWindow in X lib");
+    if (loadXlibDll() == false) {
         return false;
     }
 
@@ -146,12 +119,7 @@ void DisplayDriverX11::Impl::finalize()
 {
     disconnect();
 
-    fn_x_create_window_ = nullptr;
-    fn_x_create_colormap_ = nullptr;
-    fn_x_close_display_ = nullptr;
-    fn_x_open_display_ = nullptr;
-
-    x_lib_dll_.unload();
+    unloadXlibDll();
 }
 
 bool DisplayDriverX11::Impl::connect()
@@ -250,6 +218,70 @@ void DisplayDriverX11::Impl::setWindowShouldClose(
 
 void DisplayDriverX11::Impl::pollEvents(bool block)
 {
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool DisplayDriverX11::Impl::loadXlibDll()
+{
+    if (x_lib_dll_.load("libX11.so.6") == false) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to load libX11.so.6");
+        return false;
+    }
+
+    // XOpenDisplay
+    fn_x_open_display_ =
+        (FN_XOpenDisplay)x_lib_dll_.findSymbol("XOpenDisplay");
+    if (nullptr == fn_x_open_display_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XOpenDisplay in X lib");
+        return false;
+    }
+    // XCloseDisplay
+    fn_x_close_display_ =
+        (FN_XCloseDisplay)x_lib_dll_.findSymbol("XCloseDisplay");
+    if (nullptr == fn_x_close_display_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XCloseDisplay in X lib");
+        return false;
+    }
+    // XCreateColormap
+    fn_x_create_colormap_ =
+        (FN_XCreateColormap)x_lib_dll_.findSymbol("XCreateColormap");
+    if (nullptr == fn_x_create_colormap_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XCreateColormap in X lib");
+        return false;
+    }
+    // XCreateWindow
+    fn_x_create_window_ =
+        (FN_XCreateWindow)x_lib_dll_.findSymbol("XCreateWindow");
+    if (nullptr == fn_x_create_window_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XCreateWindow in X lib");
+        return false;
+    }
+    // XInternAtom
+    fn_x_intern_atom_ =
+        (FN_XInternAtom)x_lib_dll_.findSymbol("XInternAtom");
+    if (nullptr == fn_x_intern_atom_) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XInternAtom in X lib");
+        return false;
+    }
+
+    return true;
+}
+
+void DisplayDriverX11::Impl::unloadXlibDll()
+{
+    fn_x_intern_atom_ = nullptr;
+    fn_x_create_window_ = nullptr;
+    fn_x_create_colormap_ = nullptr;
+    fn_x_close_display_ = nullptr;
+    fn_x_open_display_ = nullptr;
+
+    x_lib_dll_.unload();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
