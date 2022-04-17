@@ -83,6 +83,12 @@ public:
         const unsigned char *, // data
         int                    // nelements
     );
+    using FN_XSetWMProtocols = Status (*)(
+        Display *, // display
+        Window,    // w
+        Atom *,    // protocols
+        int        // count
+    );
 
 public:
     DynamicLoadLibraryX11();
@@ -99,6 +105,7 @@ public:
     FN_XCreateWindow fn_x_create_window;
     FN_XInternAtom fn_x_intern_atom;
     FN_XChangeProperty fn_x_change_property;
+    FN_XSetWMProtocols fn_x_set_wm_protocols;
 
 private:
     DynamicLoadLibrary dll_;
@@ -113,6 +120,7 @@ DynamicLoadLibraryX11::DynamicLoadLibraryX11() :
     fn_x_create_window(nullptr),
     fn_x_intern_atom(nullptr),
     fn_x_change_property(nullptr),
+    fn_x_set_wm_protocols(nullptr),
     load_success_(false)
 {
 }
@@ -178,6 +186,14 @@ bool DynamicLoadLibraryX11::load()
             "display_x11: failed to find symbol XChangeProperty in X lib");
         return false;
     }
+    // XSetWMProtocols
+    this->fn_x_set_wm_protocols =
+        (FN_XSetWMProtocols)dll_.findSymbol("XSetWMProtocols");
+    if (nullptr == this->fn_x_set_wm_protocols) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XSetWMProtocols in X lib");
+        return false;
+    }
 
     load_success_ = true;
 
@@ -188,6 +204,7 @@ void DynamicLoadLibraryX11::unload()
 {
     load_success_ = false;
 
+    this->fn_x_set_wm_protocols = nullptr;
     this->fn_x_change_property = nullptr;
     this->fn_x_intern_atom = nullptr;
     this->fn_x_create_window = nullptr;
@@ -225,15 +242,26 @@ public:
     void pollEvents(bool block);
 
 private:
+    void initAtoms();
+    void finalizeAtoms();
+
+private:
     DynamicLoadLibraryX11 x11_dll_;
 
     Display *display_;
+    Atom atom_wm_delete_window_;
+    Atom atom_net_wm_pid_;
+    Atom atom_net_wm_ping_;
+
     WindowDataMap windows_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
 DisplayDriverX11::Impl::Impl() :
-    display_(nullptr)
+    display_(nullptr),
+    atom_wm_delete_window_(0),
+    atom_net_wm_pid_(0),
+    atom_net_wm_ping_(0)
 {
 }
 
@@ -260,7 +288,7 @@ void DisplayDriverX11::Impl::finalize()
 
 bool DisplayDriverX11::Impl::connect()
 {
-    if (x11_dll_.checkLoadSuccess()) {
+    if (x11_dll_.checkLoadSuccess() == false) {
         return false;
     }
 
@@ -271,16 +299,19 @@ bool DisplayDriverX11::Impl::connect()
         return false;
     }
 
+    initAtoms();
+
     return true;
 }
 
 void DisplayDriverX11::Impl::disconnect()
 {
-    if (x11_dll_.checkLoadSuccess()) {
+    if (x11_dll_.checkLoadSuccess() == false) {
         return;
     }
 
     if (display_ != nullptr) {
+        finalizeAtoms();
         x11_dll_.fn_x_close_display(display_);
         display_ = nullptr;
     }
@@ -291,7 +322,7 @@ bool DisplayDriverX11::Impl::createWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    if (x11_dll_.checkLoadSuccess()) {
+    if (x11_dll_.checkLoadSuccess() == false) {
         return false;
     }
 
@@ -329,14 +360,25 @@ bool DisplayDriverX11::Impl::createWindow(
         return false;
     }
 
+    // declare the WM protocols supported
+    {
+        Atom wm_protocols[] = {
+            atom_wm_delete_window_,
+            atom_net_wm_ping_,
+        };
+        x11_dll_.fn_x_set_wm_protocols(
+            display_, window_handler,
+            wm_protocols,
+            sizeof(wm_protocols) / sizeof(Atom));
+    }
+
     // declare pid
     {
         const long pid = ::getpid();
-        Atom net_wm_pid = x11_dll_.fn_x_intern_atom(
-            display_, "_NET_WM_PID", False);
         x11_dll_.fn_x_change_property(
-            display_, window_handler, net_wm_pid, XA_CARDINAL,
-            32, PropModeReplace, (unsigned char *)&pid, 1);
+            display_, window_handler, atom_net_wm_pid_,
+            XA_CARDINAL, 32, PropModeReplace,
+            (unsigned char *)&pid, 1);
     }
 
     std::unique_ptr<WindowData> window(
@@ -368,6 +410,24 @@ void DisplayDriverX11::Impl::setWindowShouldClose(
 
 void DisplayDriverX11::Impl::pollEvents(bool block)
 {
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void DisplayDriverX11::Impl::initAtoms()
+{
+    atom_wm_delete_window_ = x11_dll_.fn_x_intern_atom(
+        display_, "WM_DELETE_WINDOW", False);
+    atom_net_wm_pid_ = x11_dll_.fn_x_intern_atom(
+        display_, "_NET_WM_PID", False);
+    atom_net_wm_ping_ = x11_dll_.fn_x_intern_atom(
+        display_, "_NET_WM_PING", False);
+}
+
+void DisplayDriverX11::Impl::finalizeAtoms()
+{
+    atom_net_wm_ping_ = 0;
+    atom_net_wm_pid_ = 0;
+    atom_wm_delete_window_ = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
