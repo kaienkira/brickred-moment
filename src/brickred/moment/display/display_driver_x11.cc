@@ -48,6 +48,9 @@ public:
     using FN_XCloseDisplay = int (*)(
         Display * // display
     );
+    using FN_XFlush = int (*)(
+        Display * // display
+    );
     using FN_XCreateColormap = Colormap (*)(
         Display *, // display
         Window,    // w
@@ -104,6 +107,7 @@ public:
 public:
     FN_XOpenDisplay fn_x_open_display;
     FN_XCloseDisplay fn_x_close_display;
+    FN_XFlush fn_x_flush;
     FN_XCreateColormap fn_x_create_colormap;
     FN_XCreateWindow fn_x_create_window;
     FN_XMapWindow fn_x_map_window;
@@ -119,6 +123,7 @@ private:
 DynamicLoadLibraryX11::DynamicLoadLibraryX11() :
     fn_x_open_display(nullptr),
     fn_x_close_display(nullptr),
+    fn_x_flush(nullptr),
     fn_x_create_colormap(nullptr),
     fn_x_create_window(nullptr),
     fn_x_map_window(nullptr),
@@ -155,6 +160,14 @@ bool DynamicLoadLibraryX11::load()
     if (nullptr == this->fn_x_close_display) {
         BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
             "display_x11: failed to find symbol XCloseDisplay in X lib");
+        return false;
+    }
+    // XFlush
+    this->fn_x_flush =
+        (FN_XFlush)dll_.findSymbol("XFlush");
+    if (nullptr == this->fn_x_flush) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XFlush in X lib");
         return false;
     }
     // XCreateColormap
@@ -217,6 +230,7 @@ void DynamicLoadLibraryX11::unload()
     this->fn_x_map_window = nullptr;
     this->fn_x_create_window = nullptr;
     this->fn_x_create_colormap = nullptr;
+    this->fn_x_flush = nullptr;
     this->fn_x_close_display = nullptr;
     this->fn_x_open_display = nullptr;
 
@@ -397,6 +411,8 @@ bool DisplayDriverX11::Impl::createWindow(
 
     // show window
     x11_dll_.fn_x_map_window(display_, window_handler);
+    // flush
+    x11_dll_.fn_x_flush(display_);
 
     std::unique_ptr<WindowData> window(
         new WindowData(window_handler));
