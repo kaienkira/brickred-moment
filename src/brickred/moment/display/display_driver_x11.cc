@@ -68,6 +68,10 @@ public:
         unsigned long,         // valuemask
         XSetWindowAttributes * // attributes
     );
+    using FN_XMapWindow = int (*)(
+        Display *, // display
+        Window     // w
+    );
     using FN_XInternAtom = Atom (*)(
         Display *,    // display
         const char *, // atom_name
@@ -96,20 +100,19 @@ public:
 
     bool load();
     void unload();
-    bool checkLoadSuccess() const { return load_success_; }
 
 public:
     FN_XOpenDisplay fn_x_open_display;
     FN_XCloseDisplay fn_x_close_display;
     FN_XCreateColormap fn_x_create_colormap;
     FN_XCreateWindow fn_x_create_window;
+    FN_XMapWindow fn_x_map_window;
     FN_XInternAtom fn_x_intern_atom;
     FN_XChangeProperty fn_x_change_property;
     FN_XSetWMProtocols fn_x_set_wm_protocols;
 
 private:
     DynamicLoadLibrary dll_;
-    bool load_success_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -118,10 +121,10 @@ DynamicLoadLibraryX11::DynamicLoadLibraryX11() :
     fn_x_close_display(nullptr),
     fn_x_create_colormap(nullptr),
     fn_x_create_window(nullptr),
+    fn_x_map_window(nullptr),
     fn_x_intern_atom(nullptr),
     fn_x_change_property(nullptr),
-    fn_x_set_wm_protocols(nullptr),
-    load_success_(false)
+    fn_x_set_wm_protocols(nullptr)
 {
 }
 
@@ -170,6 +173,14 @@ bool DynamicLoadLibraryX11::load()
             "display_x11: failed to find symbol XCreateWindow in X lib");
         return false;
     }
+    // XMapWindow
+    this->fn_x_map_window =
+        (FN_XMapWindow)dll_.findSymbol("XMapWindow");
+    if (nullptr == this->fn_x_map_window) {
+        BRICKRED_MOMENT_INTERNAL_LOG_ERROR(
+            "display_x11: failed to find symbol XMapWindow in X lib");
+        return false;
+    }
     // XInternAtom
     this->fn_x_intern_atom =
         (FN_XInternAtom)dll_.findSymbol("XInternAtom");
@@ -195,18 +206,15 @@ bool DynamicLoadLibraryX11::load()
         return false;
     }
 
-    load_success_ = true;
-
     return true;
 }
 
 void DynamicLoadLibraryX11::unload()
 {
-    load_success_ = false;
-
     this->fn_x_set_wm_protocols = nullptr;
     this->fn_x_change_property = nullptr;
     this->fn_x_intern_atom = nullptr;
+    this->fn_x_map_window = nullptr;
     this->fn_x_create_window = nullptr;
     this->fn_x_create_colormap = nullptr;
     this->fn_x_close_display = nullptr;
@@ -247,6 +255,7 @@ private:
 
 private:
     DynamicLoadLibraryX11 x11_dll_;
+    bool init_success_;
 
     Display *display_;
     Atom atom_wm_delete_window_;
@@ -258,6 +267,7 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 DisplayDriverX11::Impl::Impl() :
+    init_success_(false),
     display_(nullptr),
     atom_wm_delete_window_(0),
     atom_net_wm_pid_(0),
@@ -276,11 +286,15 @@ bool DisplayDriverX11::Impl::init()
         return false;
     }
 
+    init_success_ = true;
+
     return true;
 }
 
 void DisplayDriverX11::Impl::finalize()
 {
+    init_success_ = false;
+
     disconnect();
 
     x11_dll_.unload();
@@ -288,7 +302,7 @@ void DisplayDriverX11::Impl::finalize()
 
 bool DisplayDriverX11::Impl::connect()
 {
-    if (x11_dll_.checkLoadSuccess() == false) {
+    if (init_success_ == false) {
         return false;
     }
 
@@ -306,7 +320,7 @@ bool DisplayDriverX11::Impl::connect()
 
 void DisplayDriverX11::Impl::disconnect()
 {
-    if (x11_dll_.checkLoadSuccess() == false) {
+    if (init_success_ == false) {
         return;
     }
 
@@ -322,7 +336,7 @@ bool DisplayDriverX11::Impl::createWindow(
     int32_t pos_x, int32_t pos_y,
     uint32_t width, uint32_t height)
 {
-    if (x11_dll_.checkLoadSuccess() == false) {
+    if (init_success_ == false) {
         return false;
     }
 
@@ -380,6 +394,9 @@ bool DisplayDriverX11::Impl::createWindow(
             XA_CARDINAL, 32, PropModeReplace,
             (unsigned char *)&pid, 1);
     }
+
+    // show window
+    x11_dll_.fn_x_map_window(display_, window_handler);
 
     std::unique_ptr<WindowData> window(
         new WindowData(window_handler));
